@@ -1,0 +1,20 @@
+{
+    "hecht": {
+        "name": "Hecht (Esox lucius)",
+        "schonzeit": "02. Januar bis 30. April (je nach Bundesland)",
+        "mindestmass": "45 - 60 cm",
+        "tipp": "Vorsicht beim Kiemengriff – scharfe Zähne!"
+    },
+    "barsch": {
+        "name": "Flussbarsch (Perca fluviatilis)",
+        "schonzeit": "Meist keine Schonzeit",
+        "mindestmass": "Oft kein Mindestmaß",
+        "tipp": "Stachlige Rückenflosse! Perfekt als Köderfisch oder Speisefisch."
+    },
+    "zander": {
+        "name": "Zander (Sander lucioperca)",
+        "schonzeit": "01. April bis 31. Mai",
+        "mindestmass": "45 - 50 cm",
+        "tipp": "Lichtscheu. Beißt am besten in der Dämmerung oder nachts."
+    }
+}
