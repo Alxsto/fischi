@@ -3,7 +3,6 @@ def load_model():
     # Lädt deine heruntergeladene Datei aus dem Projektordner
     return YOLO("fisch_modell.pt") 
 
-# ... (Zwischenteil bleibt gleich) ...
 
     with col2:
         st.subheader("Analyse-Ergebnisse")
