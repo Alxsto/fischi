@@ -3,7 +3,7 @@ from ultralytics import YOLOWorld
 from PIL import Image
 import json
 import os
-import cv2  # Wichtig für die Farbkonvertierung
+import numpy as np
 
 # 1. Seite konfigurieren
 st.set_page_config(page_title="Fisch-Erkennung KI", page_icon="🐟", layout="centered")
@@ -12,15 +12,12 @@ st.title("🐟 Spezialisierte Fisch-Erkennung")
 st.write("Dank YOLO-World erkennt diese KI Fische anhand von Texteingaben – ganz ohne eigenes Training!")
 
 # 2. Liste der Fische, die gesucht werden sollen
-# Tipp: Nutze die englischen Namen, da die KI darauf weltweit trainiert ist.
 fisch_arten = ["pike fish", "perch fish", "zander fish", "carp fish", "trout fish"]
 
 # 3. Modell & Zusatzdaten laden
 @st.cache_resource
 def load_yolo_world():
-    # Wir laden das 'l' (large) Modell für hohe Genauigkeit bei feinen Details
     model = YOLOWorld("yolov8l-world.pt")
-    # Hier sagen wir der KI, nach welchen Klassen sie suchen soll
     model.set_classes(fisch_arten)
     return model
 
@@ -38,36 +35,45 @@ fish_info_db = load_fish_data()
 uploaded_file = st.file_uploader("Wähle ein Bild deines Fangs...", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
-    image = Image.open(uploaded_file)
+    # Bild öffnen und sicherstellen, dass es im RGB-Modus ist
+    image = Image.open(uploaded_file).convert("RGB")
     
     col1, col2 = st.columns([1, 1])
     
     with col1:
         st.subheader("Dein Fang")
-        # KI-Erkennung ausführen
-        results = model(image, conf=0.20) # 20% Sicherheit reicht zum Matchen
         
-        # Boxen auf das Bild zeichnen (gibt BGR-Array zurück)
+        # KI-Erkennung ausführen
+        results = model(image, conf=0.20)
+        
+        # Boxen zeichnen lassen
         res_plotted = results[0].plot()
         
-        # FIX: Von BGR (OpenCV-Standard) zu RGB (Streamlit-Standard) konvertieren
-        res_rgb = cv2.cvtColor(res_plotted, cv2.COLOR_BGR2RGB)
+        # FIX: Wir konvertieren das Array absolut sicher in ein PIL-Bild.
+        # YOLO plot liefert standardmäßig BGR als NumPy Array. 
+        # Wir drehen die Kanäle um ([:, :, ::-1]) und machen ein PIL Image daraus.
+        if isinstance(res_plotted, np.ndarray):
+            res_rgb_array = res_plotted[:, :, ::-1]  # BGR zu RGB
+            final_image = Image.fromarray(res_rgb_array)
+        else:
+            final_image = image # Fallback, falls Plot fehlschlägt
         
-        # Bild in Streamlit anzeigen
-        st.image(res_rgb, caption="KI Analyse", use_container_width=True)
+        # Bild in Streamlit anzeigen (ohne anfällige Parameter)
+        st.image(final_image, caption="KI Analyse")
 
     with col2:
         st.subheader("Analyse-Ergebnisse")
         
         detected_classes = []
-        for box in results[0].boxes:
-            class_id = int(box.cls[0])
-            class_name = model.names[class_id]
-            confidence = float(box.conf[0]) * 100
-            detected_classes.append((class_name, confidence))
+        if results[0].boxes is not None:
+            for box in results[0].boxes:
+                class_id = int(box.cls[0])
+                class_name = model.names[class_id]
+                confidence = float(box.conf[0]) * 100
+                detected_classes.append((class_name, confidence))
         
         if not detected_classes:
-            st.warning("Es wurde leider keine der angegebenen Fischarten erkannt. Versuche ein schärferes Foto.")
+            st.warning("Es wurde leider kein Fisch erkannt. Versuche ein schärferes Foto.")
         else:
             unique_classes = list(set([c[0] for c in detected_classes]))
             
@@ -75,7 +81,6 @@ if uploaded_file is not None:
                 max_conf = max([c[1] for c in detected_classes if c[0] == f_class])
                 st.success(f"Gefunden: **{f_class.upper()}** ({max_conf:.1f}%)")
                 
-                # Wir mappen den englischen KI-Suchbegriff auf unsere deutschen JSON-Daten
                 mapping = {
                     "pike fish": "hecht",
                     "perch fish": "barsch",
@@ -93,4 +98,4 @@ if uploaded_file is not None:
                     st.warning(f"📏 **Mindestmaß:** {info['mindestmass']}")
                     st.write(f"💡 **Angler-Tipp:** {info['tipp']}")
                 else:
-                    st.info(f"Keine Schonzeit-Infos für '{db_key}' in der fische_daten.json hinterlegt.")
+                    st.info(f"Keine Schonzeit-Infos für '{db_key}' in fische_daten.json.")
