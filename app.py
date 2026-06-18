@@ -9,14 +9,19 @@ import numpy as np
 st.set_page_config(page_title="Fisch-Erkennung KI", page_icon="🐟", layout="centered")
 
 st.title("🐟 Spezialisierte Fisch-Erkennung")
-st.write("Dank YOLO-World erkennt diese KI Fische anhand von Texteingaben – ganz ohne eigenes Training!")
+st.write("Diese KI erkennt Süß- und Salzwasserfische anhand moderner Text-Bild-Abgleiche – ganz ohne eigenes Training!")
 
-# 2. Liste der Fische, die gesucht werden sollen
-fisch_arten = ["pike fish", "perch fish", "zander fish", "carp fish", "trout fish"]
+# 2. Erweiterte Liste der Fische (Süßwasser & Nord-/Ostsee)
+fisch_arten = [
+    "pike fish", "perch fish", "zander fish", "carp fish", "trout fish",
+    "cod fish", "herring fish", "mackerel fish", "plaice fish", "flounder fish",
+    "sea trout fish", "garfish"
+]
 
 # 3. Modell & Zusatzdaten laden
 @st.cache_resource
 def load_yolo_world():
+    # Wir nutzen das 'l' (large) Modell für höhere Genauigkeit bei feinen Details
     model = YOLOWorld("yolov8l-world.pt")
     model.set_classes(fisch_arten)
     return model
@@ -43,22 +48,21 @@ if uploaded_file is not None:
     with col1:
         st.subheader("Dein Fang")
         
-        # KI-Erkennung ausführen
-        results = model(image, conf=0.20)
+        # KI-Erkennung ausführen 
+        # conf=0.25 filtert zu ungenaue Raten-Versuche heraus
+        results = model(image, conf=0.25)
         
         # Boxen zeichnen lassen
         res_plotted = results[0].plot()
         
-        # FIX: Wir konvertieren das Array absolut sicher in ein PIL-Bild.
-        # YOLO plot liefert standardmäßig BGR als NumPy Array. 
-        # Wir drehen die Kanäle um ([:, :, ::-1]) und machen ein PIL Image daraus.
+        # Absolute sichere Konvertierung in ein PIL-Bild für Streamlit
         if isinstance(res_plotted, np.ndarray):
-            res_rgb_array = res_plotted[:, :, ::-1]  # BGR zu RGB
+            res_rgb_array = res_plotted[:, :, ::-1]  # BGR zu RGB Kanäle drehen
             final_image = Image.fromarray(res_rgb_array)
         else:
-            final_image = image # Fallback, falls Plot fehlschlägt
+            final_image = image
         
-        # Bild in Streamlit anzeigen (ohne anfällige Parameter)
+        # Bild in Streamlit anzeigen
         st.image(final_image, caption="KI Analyse")
 
     with col2:
@@ -73,7 +77,7 @@ if uploaded_file is not None:
                 detected_classes.append((class_name, confidence))
         
         if not detected_classes:
-            st.warning("Es wurde leider kein Fisch erkannt. Versuche ein schärferes Foto.")
+            st.warning("Es wurde leider kein Fisch erkannt. Versuche ein schärferes Foto aus einem besseren Winkel.")
         else:
             unique_classes = list(set([c[0] for c in detected_classes]))
             
@@ -81,12 +85,20 @@ if uploaded_file is not None:
                 max_conf = max([c[1] for c in detected_classes if c[0] == f_class])
                 st.success(f"Gefunden: **{f_class.upper()}** ({max_conf:.1f}%)")
                 
+                # Neues, erweitertes Mapping der englischen Begriffe auf deutsche JSON-Schlüssel
                 mapping = {
                     "pike fish": "hecht",
                     "perch fish": "barsch",
                     "zander fish": "zander",
                     "carp fish": "karpfen",
-                    "trout fish": "forelle"
+                    "trout fish": "forelle",
+                    "cod fish": "dorsch",
+                    "herring fish": "hering",
+                    "mackerel fish": "makrele",
+                    "plaice fish": "scholle",
+                    "flounder fish": "flunder",
+                    "sea trout fish": "meerforelle",
+                    "garfish": "hornhecht"
                 }
                 
                 db_key = mapping.get(f_class, f_class)
@@ -98,4 +110,4 @@ if uploaded_file is not None:
                     st.warning(f"📏 **Mindestmaß:** {info['mindestmass']}")
                     st.write(f"💡 **Angler-Tipp:** {info['tipp']}")
                 else:
-                    st.info(f"Keine Schonzeit-Infos für '{db_key}' in fische_daten.json.")
+                    st.info(f"Keine Schonzeit-Infos für '{db_key}' in fische_daten.json hinterlegt.")
