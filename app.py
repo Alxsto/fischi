@@ -3,6 +3,7 @@ from ultralytics import YOLOWorld
 from PIL import Image
 import json
 import os
+import cv2  # Wichtig für die Farbkonvertierung
 
 # 1. Seite konfigurieren
 st.set_page_config(page_title="Fisch-Erkennung KI", page_icon="🐟", layout="centered")
@@ -11,7 +12,7 @@ st.title("🐟 Spezialisierte Fisch-Erkennung")
 st.write("Dank YOLO-World erkennt diese KI Fische anhand von Texteingaben – ganz ohne eigenes Training!")
 
 # 2. Liste der Fische, die gesucht werden sollen
-# Tipp: Nutze die englischen oder wissenschaftlichen Namen, da die KI darauf weltklasse trainiert ist.
+# Tipp: Nutze die englischen Namen, da die KI darauf weltweit trainiert ist.
 fisch_arten = ["pike fish", "perch fish", "zander fish", "carp fish", "trout fish"]
 
 # 3. Modell & Zusatzdaten laden
@@ -46,9 +47,14 @@ if uploaded_file is not None:
         # KI-Erkennung ausführen
         results = model(image, conf=0.20) # 20% Sicherheit reicht zum Matchen
         
-        # Boxen auf das Bild zeichnen
+        # Boxen auf das Bild zeichnen (gibt BGR-Array zurück)
         res_plotted = results[0].plot()
-        st.image(res_plotted, caption="KI Analyse", use_container_width=True)
+        
+        # FIX: Von BGR (OpenCV-Standard) zu RGB (Streamlit-Standard) konvertieren
+        res_rgb = cv2.cvtColor(res_plotted, cv2.COLOR_BGR2RGB)
+        
+        # Bild in Streamlit anzeigen
+        st.image(res_rgb, caption="KI Analyse", use_container_width=True)
 
     with col2:
         st.subheader("Analyse-Ergebnisse")
@@ -87,4 +93,4 @@ if uploaded_file is not None:
                     st.warning(f"📏 **Mindestmaß:** {info['mindestmass']}")
                     st.write(f"💡 **Angler-Tipp:** {info['tipp']}")
                 else:
-                    st.info(f"Keine Schonzeit-Infos für '{db_key}' in der Datenbank.")
+                    st.info(f"Keine Schonzeit-Infos für '{db_key}' in der fische_daten.json hinterlegt.")
