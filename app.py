@@ -5,7 +5,7 @@ import numpy as np
 
 # 1. Seite konfigurieren
 st.set_page_config(
-    page_title="FishID Pro – Intelligente Fischerkennung", 
+    page_title="FishAI Pro – Intelligente Fischerkennung", 
     page_icon="🐟", 
     layout="wide"
 )
@@ -37,10 +37,10 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 2. Header-Bereich
-st.title("🐟 FishID Pro")
+st.title("🐟 FishAI Pro")
 st.subheader("Spezialisierte Erkennung & Schonzeiten für Angler")
 
-with st.expander("ℹ️ Wie funktioniert FishID Pro?", expanded=False):
+with st.expander("ℹ️ Wie funktioniert FishAI Pro?", expanded=False):
     st.write("""
         1. Mache ein möglichst scharfes Foto deines Fangs (am besten flach von der Seite).
         2. Lade das Bild hier hoch.
@@ -165,13 +165,14 @@ if uploaded_file is not None:
             results = model(image, conf=0.25)
             res_plotted = results[0].plot()
             
+            # FIX: Konvertierung in reines RGB NumPy Array – das sicherste Format für Streamlit st.image
             if isinstance(res_plotted, np.ndarray):
-                res_rgb_array = res_plotted[:, :, ::-1]
-                final_image = Image.fromarray(res_rgb_array)
+                final_image = res_plotted[:, :, ::-1]  # BGR zu RGB Kanäle tauschen
             else:
-                final_image = image
+                final_image = np.array(image)
             
-            st.image(final_image, caption="Analysiertes Fangfoto mit KI-Erkennungsrahmen", use_container_width=True)
+            # FIX: use_container_width entfernt für maximale Stabilität
+            st.image(final_image, caption="Analysiertes Fangfoto mit KI-Erkennungsrahmen")
 
     with col2:
         st.markdown("### 📊 Analyse-Ergebnisse")
