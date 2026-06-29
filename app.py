@@ -7,7 +7,7 @@ import numpy as np
 st.set_page_config(
     page_title="FishAI Pro – Intelligente Fischerkennung", 
     page_icon="🐟", 
-    layout="high"
+    layout="wide"
 )
 
 # Custom CSS für das Design
