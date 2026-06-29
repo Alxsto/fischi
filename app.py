@@ -9,7 +9,7 @@ import numpy as np
 st.set_page_config(page_title="Fisch-Erkennung KI", page_icon="🐟", layout="centered")
 
 st.title("🐟 Spezialisierte Fisch-Erkennung")
-st.write("Diese KI erkennt Süß- und Salzwasserfische anhand moderner Text-Bild-Abgleiche – ganz ohne eigenes Training!")
+st.write("Diese KI erkennt Süß- und Salzwasserfische anhand moderner Text-Bild-Abgleiche – ganz ohne extra JSON-Datei!")
 
 # 2. Erweiterte Liste der Fische (Süßwasser & Nord-/Ostsee)
 fisch_arten = [
@@ -18,29 +18,95 @@ fisch_arten = [
     "sea trout fish", "garfish"
 ]
 
-# 3. Modell & Zusatzdaten laden
+# 3. Fisch-Datenbank direkt im Code integriert (Verhindert Fehler mit fehlenden Dateien)
+fish_info_db = {
+    "hecht": {
+        "name": "Hecht (Esox lucius) - Süßwasser",
+        "schonzeit": "15. Februar bis 30. April (je nach Bundesland)",
+        "mindestmass": "45 - 60 cm",
+        "tipp": "Vorsicht beim Kiemengriff – scharfe Zähne!"
+    },
+    "barsch": {
+        "name": "Flussbarsch (Perca fluviatilis) - Süßwasser",
+        "schonzeit": "Meist keine Schonzeit",
+        "mindestmass": "Oft kein Mindestmaß (regional ca. 20 cm)",
+        "tipp": "Stachlige Rückenflosse! Perfekt als Speisefisch."
+    },
+    "zander": {
+        "name": "Zander (Sander lucioperca) - Süßwasser",
+        "schonzeit": "01. April bis 31. Mai",
+        "mindestmass": "45 - 50 cm",
+        "tipp": "Lichtscheu. Beißt am besten in der Dämmerung oder nachts."
+    },
+    "karpfen": {
+        "name": "Spiegel-/Schuppenkarpfen (Cyprinus carpio) - Süßwasser",
+        "schonzeit": "Meist keine (bzw. regional unterschiedlich)",
+        "mindestmass": "35 - 40 cm",
+        "tipp": "Karpfen kämpfen stark! Achte auf eine gut eingestellte Rollenbremse."
+    },
+    "forelle": {
+        "name": "Bachforelle (Salmo trutta fario) - Süßwasser",
+        "schonzeit": "20. Oktober bis 15. März",
+        "mindestmass": "25 - 30 cm",
+        "tipp": "Sehr schreckhaft. Pirsche dich vorsichtig an das Ufer heran."
+    },
+    "dorsch": {
+        "name": "Dorsch / Kabeljau (Gadus morhua) - Nord- und Ostsee",
+        "schonzeit": "Ganzjähriges Fangverbot für Freizeitangler (Baglimit beachten!)",
+        "mindestmass": "38 cm",
+        "tipp": "Aktuell herrscht in der Ostsee ein striktes Fangverbot (Baglimit 0). Beifänge extrem schonend zurücksetzen!"
+    },
+    "hering": {
+        "name": "Hering (Clupea harengus) - Nord- und Ostsee",
+        "schonzeit": "Keine direkte Schonzeit, aber Fangquoten beachten",
+        "mindestmass": "Kein gesetzliches Mindestmaß",
+        "tipp": "Zieht im Frühjahr in riesigen Schwärmen in Küstennähe. Nutze Heringspaternoster ohne zusätzlichen Köder."
+    },
+    "makrele": {
+        "name": "Makrele (Scomber scombrus) - Nordsee / westl. Ostsee",
+        "schonzeit": "Keine Schonzeit",
+        "mindestmass": "30 cm (Nordsee)",
+        "tipp": "Ein pfeilschneller Raubfisch. Kommt im Hochsommer nah an die Küsten. Macht am leichten Gerät viel Spaß."
+    },
+    "scholle": {
+        "name": "Scholle (Pleuronectes platessa) - Nord- und Ostsee",
+        "schonzeit": "01. Februar bis 30. April (gilt oft nur für weibliche Schollen)",
+        "mindestmass": "25 cm",
+        "tipp": "Plattfisch. Beißt hervorragend auf Wattwürmer oder Seeringelwürmer an der Brandungsrute."
+    },
+    "flunder": {
+        "name": "Flunder (Platichthys flesus) - Nord- und Ostsee",
+        "schonzeit": "01. Februar bis 30. April (regional unterschiedlich für Weibchen)",
+        "mindestmass": "25 cm",
+        "tipp": "Verträgt auch Brackwasser und zieht oft weit in Flussmündungen hinein. Schmeckt geräuchert fantastisch."
+    },
+    "meerforelle": {
+        "name": "Meerforelle (Salmo trutta trutta) - Küste (Nord- und Ostsee)",
+        "schonzeit": "01. Oktober bis 31. Dezember (gilt an der Küste meist nur für braune Fische im Laichkleid)",
+        "mindestmass": "40 - 45 cm",
+        "tipp": "Der 'Fisch der 1000 Würfe'. Wathose anziehen und Blinker oder Küstenfliegen weit hinauswerfen."
+    },
+    "hornhecht": {
+        "name": "Hornhecht (Belone belone) - Nord- und Ostsee",
+        "schonzeit": "Keine Schonzeit",
+        "mindestmass": "40 cm (Schleswig-Holstein) / 45 cm (Mecklenburg-Vorpommern)",
+        "tipp": "Kommt im Mai zum Laichen an die Küsten ('Wenn der Raps blüht'). Hat auffällige, ungiftige grüne Gräten!"
+    }
+}
+
+# 4. Modell laden
 @st.cache_resource
 def load_yolo_world():
-    # Wir nutzen das 'l' (large) Modell für höhere Genauigkeit bei feinen Details
     model = YOLOWorld("yolov8l-world.pt")
     model.set_classes(fisch_arten)
     return model
 
-@st.cache_data
-def load_fish_data():
-    if os.path.exists("fische_daten.json"):
-        with open("fische_daten.json", "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
-
 model = load_yolo_world()
-fish_info_db = load_fish_data()
 
-# 4. Bild-Upload
+# 5. Bild-Upload
 uploaded_file = st.file_uploader("Wähle ein Bild deines Fangs...", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
-    # Bild öffnen und sicherstellen, dass es im RGB-Modus ist
     image = Image.open(uploaded_file).convert("RGB")
     
     col1, col2 = st.columns([1, 1])
@@ -48,21 +114,19 @@ if uploaded_file is not None:
     with col1:
         st.subheader("Dein Fang")
         
-        # KI-Erkennung ausführen 
-        # conf=0.25 filtert zu ungenaue Raten-Versuche heraus
+        # KI-Erkennung ausführen
         results = model(image, conf=0.25)
         
         # Boxen zeichnen lassen
         res_plotted = results[0].plot()
         
-        # Absolute sichere Konvertierung in ein PIL-Bild für Streamlit
+        # Konvertierung in ein PIL-Bild für Streamlit
         if isinstance(res_plotted, np.ndarray):
-            res_rgb_array = res_plotted[:, :, ::-1]  # BGR zu RGB Kanäle drehen
+            res_rgb_array = res_plotted[:, :, ::-1]  # BGR zu RGB
             final_image = Image.fromarray(res_rgb_array)
         else:
             final_image = image
         
-        # Bild in Streamlit anzeigen
         st.image(final_image, caption="KI Analyse")
 
     with col2:
@@ -85,7 +149,7 @@ if uploaded_file is not None:
                 max_conf = max([c[1] for c in detected_classes if c[0] == f_class])
                 st.success(f"Gefunden: **{f_class.upper()}** ({max_conf:.1f}%)")
                 
-                # Neues, erweitertes Mapping der englischen Begriffe auf deutsche JSON-Schlüssel
+                # Exaktes Mapping auf unsere Dictionary-Schlüssel oben
                 mapping = {
                     "pike fish": "hecht",
                     "perch fish": "barsch",
@@ -110,4 +174,4 @@ if uploaded_file is not None:
                     st.warning(f"📏 **Mindestmaß:** {info['mindestmass']}")
                     st.write(f"💡 **Angler-Tipp:** {info['tipp']}")
                 else:
-                    st.info(f"Keine Schonzeit-Infos für '{db_key}' in fische_daten.json hinterlegt.")
+                    st.info(f"Keine Schonzeit-Infos für '{db_key}' im Code hinterlegt.")
